@@ -6,30 +6,39 @@ with open('medical.json', 'r', encoding='utf-8') as file:
     disease_list = json.load(file)
 
 # 清洗 get_prob 字段，只保留百分比
-for disease in disease_list:
-    if 'get_prob' in disease and isinstance(disease['get_prob'], str):
-        # 使用正则表达式从 get_prob 中提取数字部分
-        match = re.search(r'(\d+(\.\d+)?)%', disease['get_prob'])
-        if match:
-            # 将百分比字符串转换为小数
-            disease['get_prob'] = float(match.group(1)) / 100
+def process_get_prob(disease_list):
+    for disease in disease_list:
+        if 'get_prob' in disease and isinstance(disease['get_prob'], str):
+            # 使用正则表达式从 get_prob 中提取数字部分
+            match = re.search(r'(\d+(\.\d+)?)%', disease['get_prob'])
+            if match:
+                # 将百分比字符串转换为小数
+                disease['get_prob'] = float(match.group(1)) / 100
+            else:
+                # 如果没有匹配到百分比，则设置为 0
+                disease['get_prob'] = 0.0
         else:
-            # 如果没有匹配到百分比，则设置为 0
+            # 如果没有 get_prob 字段，或者字段不是字符串类型，则设置为 0
             disease['get_prob'] = 0.0
-    else:
-        # 如果没有 get_prob 字段，或者字段不是字符串类型，则设置为 0
-        disease['get_prob'] = 0.0
 
-# 示例用户输入
-user_symptoms = ['胸痛', '咳嗽']
 
-# 科室类别
-department = '肿瘤'
+# 处理疾病数据，提取百分比
+process_get_prob(disease_list)
+
+
+# 过滤包含特定科室的疾病
+def filter_by_department(disease_list, department):
+    return [
+        disease for disease in disease_list
+        if any(department in dept for dept in disease.get('cure_department', []))
+    ]
+
+
 
 # 进行疾病分析
-def analyze_symptoms(user_symptoms, disease_list  ):
+def analyze_symptoms(user_symptoms,  filtered_diseases ):
     # 根据症状，按得病概率从高到低排序
-    sorted_diseases = sorted(disease_list, key=lambda x: x['get_prob'], reverse=True)
+    sorted_diseases = sorted(filtered_diseases, key=lambda x: x['get_prob'], reverse=True)
 
     analysis_results = []  # 存放分析结果的列表
     analysis_limit = 2     # 最多两个分析过程
@@ -71,10 +80,25 @@ def analyze_symptoms(user_symptoms, disease_list  ):
 
     return analysis_results
 
+# 示例用户输入
+# user_symptoms = ['胸痛', '咳嗽']
+
+# 科室类别
+department = '肿瘤'
+
+# 过滤出特定科室的疾病
+filtered_diseases = filter_by_department(disease_list, department)
+
+# 提示用户输入症状
+user_input = input("请输入您的症状（多个症状用空格分隔）：")
+user_symptoms = user_input.split()
+
+
 # 进行疾病分析并输出结果
-results = analyze_symptoms(user_symptoms, disease_list)
+results = analyze_symptoms(user_symptoms, filtered_diseases)
 
 for result in results:
+    print(f'********************************************8')
     print(f"用户输入: {result['用户输入']}")
     print(f"疾病名: {result['疾病名']}")
     print(f"疾病症状: {result['疾病症状']}")
